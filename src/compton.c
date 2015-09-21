@@ -214,6 +214,10 @@ make_gaussian_map(double r) {
   double g;
 
   c = malloc(sizeof(conv) + size * size * sizeof(double));
+  if (!c){
+      printf_errf("(): Failed to allocate memory for gaussian map.");
+      exit(1);
+  }
   c->size = size;
   c->data = (double *) (c + 1);
   t = 0.0;
@@ -319,6 +323,11 @@ presum_gaussian(session_t *ps, conv *map) {
 
   ps->shadow_corner = malloc((ps->cgsize + 1) * (ps->cgsize + 1) * 26);
   ps->shadow_top = malloc((ps->cgsize + 1) * 26);
+
+  if ((!ps->shadow_corner) || (!ps->shadow_top)){
+    printf_errf("(): Failed to allocate memory for shadow corners and sides.");
+    exit(1);
+  }
 
   for (x = 0; x <= ps->cgsize; x++) {
     ps->shadow_top[25 * (ps->cgsize + 1) + x] =
@@ -4165,6 +4174,11 @@ ev_expose(session_t *ps, XExposeEvent *ev) {
       }
     }
 
+    if (!ps->expose_rects){
+      printf_errf("(): Failed to allocate memory for expose rects.");
+      exit(1);
+    }
+
     ps->expose_rects[ps->n_expose].x = ev->x;
     ps->expose_rects[ps->n_expose].y = ev->y;
     ps->expose_rects[ps->n_expose].width = ev->width;
@@ -4955,6 +4969,10 @@ register_cm(session_t *ps) {
     }
 
     char *buf = malloc(len);
+    if (!buf){
+      printf_errf("(): Failed to allocate memory for creating window.");
+      exit(1);
+    }
     snprintf(buf, len, REGISTER_PROP "%d", ps->scr);
     buf[len - 1] = '\0';
     atom = get_atom(ps, buf);
@@ -5103,7 +5121,7 @@ parse_matrix(session_t *ps, const char *src, const char **endptr) {
   int wid = 0, hei = 0;
   const char *pc = NULL;
   XFixed *matrix = NULL;
-  
+
   // Get matrix width and height
   {
     double val = 0.0;
@@ -5241,7 +5259,7 @@ parse_conv_kern_lst(session_t *ps, const char *src, XFixed **dest, int max) {
       return false;
   }
 
-  if (*pc) {
+  if ((pc) && (*pc)) {
     printf_errf("(): Too many blur kernels!");
     return false;
   }
@@ -5875,7 +5893,12 @@ get_cfg(session_t *ps, int argc, char *const *argv, bool first_pass) {
     .menu_opacity = 1.0,
   };
   bool shadow_enable = false, fading_enable = false;
-  char *lc_numeric_old = mstrcpy(setlocale(LC_NUMERIC, NULL));
+  char *locale_old = setlocale(LC_NUMERIC, NULL);
+  if (!locale_old){
+    printf_errf("(): Failed to allocate memory for old locale.");
+    exit(1);
+  }
+  char *lc_numeric_old = mstrcpy(locale_old);
 
   for (i = 0; i < NUM_WINTYPES; ++i) {
     ps->o.wintype_fade[i] = false;
@@ -6579,6 +6602,10 @@ init_alpha_picts(session_t *ps) {
   int num = round(1.0 / ps->o.alpha_step) + 1;
 
   ps->alpha_picts = malloc(sizeof(Picture) * num);
+  if (!ps->alpha_picts) {
+    printf_errf("(): Failed to allocate memory for alpha picts.");
+    exit(1);
+  }
 
   for (i = 0; i < num; ++i) {
     double o = i * ps->o.alpha_step;
@@ -6941,12 +6968,20 @@ mainloop(session_t *ps) {
     // Consider ev_received firstly
     if (ps->ev_received || ps->o.benchmark) {
       ptv = malloc(sizeof(struct timeval));
+      if (!ptv){
+        printf_errf("(): Failed to allocate memory for timout timeval.");
+        exit(1);
+      }
       ptv->tv_sec = 0L;
       ptv->tv_usec = 0L;
     }
     // Then consider fading timeout
     else if (!ps->idling) {
       ptv = malloc(sizeof(struct timeval));
+      if (!ptv){
+        printf_errf("(): Failed to allocate memory for timout timeval.");
+        exit(1);
+      }
       *ptv = ms_to_tv(fade_timeout(ps));
     }
 
@@ -6966,6 +7001,10 @@ mainloop(session_t *ps) {
     if (tmout_ms < TIME_MS_MAX) {
       if (!ptv) {
         ptv = malloc(sizeof(struct timeval));
+        if (!ptv){
+          printf_errf("(): Failed to allocate memory for timout timeval.");
+          exit(1);
+        }
         *ptv = ms_to_tv(tmout_ms);
       }
       else if (timeval_ms_cmp(ptv, tmout_ms) > 0) {
@@ -7218,6 +7257,11 @@ session_init(session_t *ps_old, int argc, char **argv) {
 
   // Allocate a session and copy default values into it
   session_t *ps = malloc(sizeof(session_t));
+  if (!ps){
+    printf_errf("(): Failed to allocate memory for session.");
+    exit(1);
+  }
+
   memcpy(ps, &s_def, sizeof(session_t));
   ps_g = ps;
   ps->ignore_tail = &ps->ignore_head;
